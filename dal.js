@@ -3,12 +3,15 @@ const url         = process.env.MONGODB_URI;
 let db            = null;
  
 // connect to mongo
-MongoClient.connect(url, {useUnifiedTopology: true}, function(err, client) {
+MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
+    if (err) {
+      console.error('Failed to connect to MongoDB', err);
+      // Consider exiting the process if the database is essential to your app
+      process.exit(1);
+    }
     console.log("Connected successfully to db server");
-
-    // connect to myproject database
     db = client.db(process.env.DB_NAME);
-});
+  });
 
 // create user account
 function create(name, email, password){
