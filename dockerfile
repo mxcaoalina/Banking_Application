@@ -9,18 +9,14 @@ LABEL description="Node.js application"
 # Set the working directory inside the container to /app
 WORKDIR /app
 
-# Copy package.json and package-lock.json to leverage Docker cache
-# to speed up build process when dependencies don't change
 COPY package*.json ./
 
 # Install production dependencies
-RUN npm install --only=production
+RUN npm install
 
 # Copy the rest of your app's source code from your host to your image filesystem
 COPY . .
 
-# Inform Docker that the container listens on port 3000 at runtime
-EXPOSE 3000
 
 # Define the command to run your app using CMD which defines your runtime
 CMD ["node", "index.js"]
