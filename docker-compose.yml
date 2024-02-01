@@ -1,6 +1,21 @@
 version: '3'
+
 services:
   web:
     build: .
-    ports:
-      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/cluster0
+    depends_on:
+      - mongo
+    command: npm start
+
+  mongo:
+    image: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  mongodb_data:
