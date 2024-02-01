@@ -7,7 +7,6 @@
     "test": "jest",
     "start": "node index.js",
     "postinstall": "npm run build --prefix client"
-}
   },
   "author": "abel@mit.edu",
   "license": "MIT",
