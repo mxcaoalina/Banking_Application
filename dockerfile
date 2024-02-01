@@ -9,11 +9,14 @@ LABEL description="Node.js application"
 # Set the working directory inside the container to /app
 WORKDIR /app
 
-COPY index.js /app/index.js
-COPY package.json /app/package.json
+# Copy everything from the current directory into the /app directory in the container
+COPY . /app
 
 # Install production dependencies
 RUN npm install
 
-# Define the command to run your app using CMD which defines your runtime
+# List contents of /app to verify files are copied correctly
+RUN ls -la /app
+
+# Define the command to run your app
 CMD ["node", "index.js"]
