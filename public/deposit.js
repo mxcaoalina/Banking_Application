@@ -39,21 +39,26 @@ function DepositForm(props) {
   const [amount, setAmount] = React.useState('');
 
   function handle() {
+    console.log(`Initiating deposit for email: ${email} with amount: ${amount}`);
     fetch(`/account/update/${email}/${parseFloat(amount)}`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.data && typeof data.data.balance !== 'undefined') {
-            props.setStatus(`Deposit successful.`);
-            props.setBalance(data.data.balance); // Ensure this property exists
-            props.setShow(false);
-        } else {
-            props.setStatus('Deposit failed or account not found');
-        }
-    })
-    .catch(error => {
-        console.error('Fetch error:', error);
-        props.setStatus('Deposit failed due to network or server error');
-    });
+        .then(response => {
+            if (!response.ok) throw new Error('Response not OK');
+            return response.json();
+        })
+        .then(data => {
+            console.log('Deposit response data:', data);
+            if (data.success && typeof data.balance !== 'undefined') {
+                props.setStatus(`Deposit successful.`);
+                props.setBalance(data.balance); // Ensure this property exists
+                props.setShow(false);
+            } else {
+                props.setStatus(data.message || 'Deposit failed or account not found');
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            props.setStatus('Deposit failed due to network or server error');
+        });
 }
 
   return (
