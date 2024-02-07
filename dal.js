@@ -2,6 +2,8 @@ const MongoClient = require('mongodb').MongoClient;
 const url         = process.env.MONGODB_URI;
 let db            = null;
  
+console.log(url); // Debugging the URI
+
 // connect to mongo
 MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
     if (err) {
