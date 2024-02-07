@@ -60,4 +60,4 @@ async function all() {
 }
 
 
-module.exports = {create, findOne, find, update, all, findOneByGoogleId};
+module.exports = { connectDB, create, findOne, find, update, all, findOneByGoogleId };
