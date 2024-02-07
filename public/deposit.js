@@ -39,15 +39,15 @@ function DepositForm(props) {
   const [amount, setAmount] = React.useState('');
 
   function handle() {
-    fetch(`/account/update/${email}/${amount}`)
+    fetch(`/account/update/${email}/${parseFloat(amount)}`)
       .then(response => response.json()) 
       .then(data => {
-        if (data && data.value && data.value.balance) { // Ensure response has the expected structure
+        if (data.success) {
           props.setStatus(`Deposit successful.`);
           props.setBalance(data.value.balance); // Update balance in parent's state
           props.setShow(false);
         } else {
-          props.setStatus('Deposit failed or account not found');
+          props.setStatus(data.message || 'Deposit failed or account not found');
         }
         console.log('JSON:', data);
       })
@@ -55,7 +55,7 @@ function DepositForm(props) {
         props.setStatus('Deposit failed');
         console.error('Fetch error:', err);
       });
-  }
+}
 
   return (
     <>

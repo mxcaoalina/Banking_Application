@@ -50,7 +50,7 @@ async function update(email, amount) {
     return collection.findOneAndUpdate(
         { email: email },
         { $inc: { balance: amount } },
-        { returnOriginal: false }
+        { returnDocument: 'after' } // For MongoDB driver version 4.0 and later
     );
 }
 
