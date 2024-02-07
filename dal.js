@@ -47,11 +47,21 @@ async function findOneByGoogleId(googleId) {
 
 async function update(email, amount) {
     const collection = getDb().collection('users');
-    return collection.findOneAndUpdate(
-        { email: email },
-        { $inc: { balance: amount } },
-        { returnDocument: 'after' } // For MongoDB driver version 4.0 and later
-    );
+    try {
+        const result = await collection.findOneAndUpdate(
+            { email: email },
+            { $inc: { balance: amount } }, // Increment (or decrement for withdrawals) the balance
+            { returnDocument: 'after' } // Ensure the updated document is returned
+        );
+        if (result.ok && result.value) {
+            return { success: true, value: result.value }; // Return a success response with the updated document
+        } else {
+            return { success: false, message: 'Update failed or account not found' };
+        }
+    } catch (error) {
+        console.error('Update operation failed:', error);
+        return { success: false, message: 'Internal server error' };
+    }
 }
 
 async function all() {
