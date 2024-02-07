@@ -1,6 +1,6 @@
 const MongoClient = require('mongodb').MongoClient;
 const url         = process.env.MONGODB_URI;
-let db            = null;
+let db;
  
 console.log(url); // Debugging the URI
 
@@ -9,94 +9,54 @@ async function connectDB() {
         const client = await MongoClient.connect(url, { useUnifiedTopology: true });
         console.log("Connected successfully to db server");
         db = client.db(process.env.DB_NAME);
-        return db;
     } catch (err) {
         console.error('Failed to connect to MongoDB', err);
         process.exit(1);
     }
 }
 
-// create user account
-function create(name, email, password){
-    return new Promise((resolve, reject) => {    
-        if (!db) {
-            reject(new Error("Database not initialized"));
-            return;
-        }
-        
-        const collection = db.collection('users');
-        
-        // Generate a random balance between 0 and 100
-        const balance = Math.floor(Math.random() * 101);
-
-        const doc = {name, email, password, balance};
-        collection.insertOne(doc, {w:1}, function(err, result) {
-            err ? reject(err) : resolve(doc);
-        });    
-    })
+function getDb() {
+    if (!db) {
+        throw new Error('Database not initialized');
+    }
+    return db;
 }
 
-// find user account
-function find(email){
-    return new Promise((resolve, reject) => {    
-        const customers = db
-            .collection('users')
-            .find({email: email})
-            .toArray(function(err, docs) {
-                err ? reject(err) : resolve(docs);
-        });    
-    })
+
+async function create(name, email, password) {
+    const collection = getDb().collection('users');
+    const balance = Math.floor(Math.random() * 101);
+    const doc = { name, email, password, balance };
+    return collection.insertOne(doc);
 }
 
-// find user account
-function findOne(email){
-    return new Promise((resolve, reject) => {    
-        const customers = db
-            .collection('users')
-            .findOne({email: email})
-            .then((doc) => resolve(doc))
-            .catch((err) => reject(err));    
-    })
+async function find(email) {
+    const collection = getDb().collection('users');
+    return collection.find({ email: email }).toArray();
 }
 
-// google login find id
-function findOneByGoogleId(googleId) {
-    return new Promise((resolve, reject) => {
-        db.collection('users')
-          .findOne({ googleId: googleId })
-          .then(doc => resolve(doc))
-          .catch(err => reject(err));
-    });
+async function findOne(email) {
+    const collection = getDb().collection('users');
+    return collection.findOne({ email: email });
 }
 
-// update - deposit/withdraw amount
-function update(email, amount){
-    return new Promise((resolve, reject) => {    
-        const customers = db
-            .collection('users')            
-            .findOneAndUpdate(
-                {email: email},
-                { $inc: { balance: amount}},
-                { returnOriginal: false },
-                function (err, documents) {
-                    err ? reject(err) : resolve(documents);
-                }
-            );            
-
-
-    });    
+async function findOneByGoogleId(googleId) {
+    const collection = getDb().collection('users');
+    return collection.findOne({ googleId: googleId });
 }
 
-// all users
-function all(){
-    return new Promise((resolve, reject) => {    
-        const customers = db
-            .collection('users')
-            .find({})
-            .toArray(function(err, docs) {
-                err ? reject(err) : resolve(docs);
-        });    
-    })
+async function update(email, amount) {
+    const collection = getDb().collection('users');
+    return collection.findOneAndUpdate(
+        { email: email },
+        { $inc: { balance: amount } },
+        { returnOriginal: false }
+    );
+}
+
+async function all() {
+    const collection = getDb().collection('users');
+    return collection.find({}).toArray();
 }
 
 
