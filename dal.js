@@ -4,20 +4,26 @@ let db            = null;
  
 console.log(url); // Debugging the URI
 
-// connect to mongo
-MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
-    if (err) {
-      console.error('Failed to connect to MongoDB', err);
-      // Consider exiting the process if the database is essential to your app
-      process.exit(1);
+async function connectDB() {
+    try {
+        const client = await MongoClient.connect(url, { useUnifiedTopology: true });
+        console.log("Connected successfully to db server");
+        db = client.db(process.env.DB_NAME);
+        return db;
+    } catch (err) {
+        console.error('Failed to connect to MongoDB', err);
+        process.exit(1);
     }
-    console.log("Connected successfully to db server");
-    db = client.db(process.env.DB_NAME);
-  });
+}
 
 // create user account
 function create(name, email, password){
     return new Promise((resolve, reject) => {    
+        if (!db) {
+            reject(new Error("Database not initialized"));
+            return;
+        }
+        
         const collection = db.collection('users');
         
         // Generate a random balance between 0 and 100
