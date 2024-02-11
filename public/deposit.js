@@ -44,6 +44,7 @@ function DepositForm(props) {
       .then(data => {
         if (data.success) {
           props.setStatus('Deposit success!');
+          props.setBalance(data.value.balance); // Assuming 'data.value.balance' contains the updated balance
           props.setShow(false);
         } else {
           props.setStatus(data.message);
