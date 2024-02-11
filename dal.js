@@ -49,6 +49,18 @@ async function update(email, amount) {
     const collection = getDb().collection('users');
     console.log(`Updating user ${email} with amount ${amount}`); // Debugging log
     try {
+        const user = await collection.findOne({ email: email });
+        if (!user) {
+            console.log(`User not found for email ${email}`);
+            return { success: false, message: 'Account not found' };
+        }
+
+        // Check if the operation is a withdrawal and if it exceeds the user's current balance
+        if (amount < 0 && (user.balance + amount) < 0) {
+            console.log(`Insufficient funds for withdrawal by ${email}`);
+            return { success: false, message: 'Insufficient funds' };
+        }
+
         
         const result = await collection.findOneAndUpdate(
             { email: email },
