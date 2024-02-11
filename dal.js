@@ -56,10 +56,10 @@ async function update(email, amount) {
             { returnDocument: 'after' }
         );
         console.log('Update result:', result); // Log the result to see what's happening
-        if (result.value) {
-            return { success: true, value: result.value };
+        if (result && result.email) {
+            return { success: true, value: result };
         } else {
-            console.log(`No document found or updated for email ${email}`); // More detailed log
+            console.log(`No document found or updated for email ${email}`);
             return { success: false, message: 'Update failed or account not found' };
         }
     } catch (error) {
