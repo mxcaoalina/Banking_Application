@@ -64,6 +64,7 @@ async function update(email, amount) {
     }
 }
 
+
 async function all() {
     const collection = getDb().collection('users');
     return collection.find({}).toArray();

@@ -39,19 +39,21 @@ function DepositForm(props) {
   const [amount, setAmount] = React.useState('');
 
   function handle() {
-    fetch(`/account/update/${email}/${amount}`)
+    fetch(`/account/update/${encodeURIComponent(email)}/${encodeURIComponent(amount)}`)
     .then(response => {
-
         if (!response.ok) throw new Error('Response not OK');
         return response.json();
     })
     .then(data => {
-        // Handle successful response
-        props.setStatus('Deposit success!');
+        if (data.success) {
+            props.setStatus('Deposit success!');
+        } else {
+            props.setStatus(data.message);
+        }
     })
     .catch(error => {
         console.error('Fetch error:', error);
-        // Update UI to reflect the error
+        props.setStatus('Error: Unable to complete the deposit');
     });
 }
 
