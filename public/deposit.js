@@ -41,6 +41,7 @@ function DepositForm(props) {
   function handle() {
     fetch(`/account/update/${email}/${amount}`)
     .then(response => {
+      console.log(response);
         if (!response.ok) throw new Error('Response not OK');
         return response.json();
     })

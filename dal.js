@@ -53,6 +53,7 @@ async function update(email, amount) {
             { $inc: { balance: amount } }, // Increment (or decrement for withdrawals) the balance
             { returnDocument: 'after' } // Ensure the updated document is returned
         );
+        console.log(result);
         if (result.ok && result.value) {
             return { success: true, value: result.value }; // Return a success response with the updated document
         } else {
