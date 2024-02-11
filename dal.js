@@ -48,14 +48,13 @@ async function findOneByGoogleId(googleId) {
 async function update(email, amount) {
     const collection = getDb().collection('users');
     try {
-        await collection.findOneAndUpdate(
+        const result = await collection.findOneAndUpdate(
             { email: email },
             { $inc: { balance: amount } }, // Increment (or decrement for withdrawals) the balance
             { returnDocument: 'after' } // Ensure the updated document is returned
         );
-        console.log(response);
-        if (response.ok && response.value) {
-            return { success: true, value: response.value }; // Return a success response with the updated document
+        if (result.value) {
+            return { success: true, value: result.value }; // Return a success response with the updated document
         } else {
             return { success: false, message: 'Update failed or account not found' };
         }
