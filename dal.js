@@ -45,6 +45,24 @@ async function findOneByGoogleId(googleId) {
     return collection.findOne({ googleId: googleId });
 }
 
+async function findOrCreateUserByGoogle({ googleId, email, name }) {
+    // Try to find the user first
+    const existingUser = await this.findOneByGoogleId(googleId);
+    if (existingUser) {
+        return existingUser; // User exists, return them
+    } else {
+        // User doesn't exist, create a new user
+        const newUser = {
+            name: name,
+            email: email,
+            googleId: googleId,
+            // You might not have a password for users signing in with Google
+        };
+        // Assuming dal.create can handle creating users without a password if they're OAuth users
+        return this.create(newUser);
+    }
+}
+
 async function update(email, amount) {
     const collection = getDb().collection('users');
     console.log(`Updating user ${email} with amount ${amount}`); // Debugging log
@@ -61,7 +79,7 @@ async function update(email, amount) {
             return { success: false, message: 'Insufficient funds' };
         }
 
-        
+
         const result = await collection.findOneAndUpdate(
             { email: email },
             { $inc: { balance: amount } },
