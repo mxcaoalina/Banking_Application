@@ -53,7 +53,7 @@ async function update(email, amount) {
             { $inc: { balance: amount } },
             { returnDocument: 'after' }
         );
-        if (result.ok && result.value) {
+        if (result.value) {
             return { success: true, value: result.value }; // Correctly access the result properties
         } else {
             return { success: false, message: 'Update failed or account not found' };
