@@ -47,6 +47,7 @@ function DepositForm(props) {
     })
     .then(data => {
         // Handle successful response
+        props.setStatus('Deposit success!');
     })
     .catch(error => {
         console.error('Fetch error:', error);
