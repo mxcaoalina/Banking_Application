@@ -42,7 +42,7 @@ function WithdrawForm(props) {
     fetch(`/account/update/${email}/-${amount}`)
       .then(response => response.json()) // Use .json() if the response is JSON
       .then(data => {
-        if (data.value.balance !== undefined) { // Check if response includes balance
+        if (data && data.value && data.value.balance !== undefined) { // Check if response includes balance
           props.setStatus(`Withdrawal successful.`);
           props.setBalance(data.value.balance); // Update the balance in the parent component
           props.setShow(false);
