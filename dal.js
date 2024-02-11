@@ -47,8 +47,9 @@ async function findOneByGoogleId(googleId) {
 
 async function update(email, amount) {
     const collection = getDb().collection('users');
+    console.log(`Updating user ${email} with amount ${amount}`); // Debugging log
     try {
-        console.log(`Updating user ${email} with amount ${amount}`); // Debugging log
+        
         const result = await collection.findOneAndUpdate(
             { email: email },
             { $inc: { balance: amount } },
