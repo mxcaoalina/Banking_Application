@@ -45,24 +45,20 @@ async function findOneByGoogleId(googleId) {
     return collection.findOne({ googleId: googleId });
 }
 
-async function update(email, amount) {
-    const collection = getDb().collection('users');
-    try {
-        const result = await collection.findOneAndUpdate(
-            { email: email },
-            { $inc: { balance: amount } },
-            { returnDocument: 'after' }
-        );
-        if (result.value) {
-            return { success: true, value: result.value }; // Correctly access the result properties
-        } else {
-            return { success: false, message: 'Update failed or account not found' };
-        }
-    } catch (error) {
-        console.error('Update operation failed:', error);
-        return { success: false, message: 'Internal server error' };
-    }
-}
+function update(email, amount){
+    return new Promise((resolve, reject) => {    
+        const customers = db
+            .collection('users')            
+            .findOneAndUpdate(
+                {email: email},
+                { $inc: { balance: amount}},
+                { returnOriginal: false },
+                function (err, documents) {
+                    err ? reject(err) : resolve(documents);
+                }
+            );            
+    })
+};
 
 async function all() {
     const collection = getDb().collection('users');
