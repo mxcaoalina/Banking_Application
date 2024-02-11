@@ -39,7 +39,7 @@ function DepositForm(props) {
   const [amount, setAmount] = React.useState('');
 
   function handle() {
-    fetch(`/account/update/${email}/${parseFloat(amount)}`)
+    fetch(`/account/update/${email}/${amount}`)
     .then(response => {
         if (!response.ok) throw new Error('Response not OK');
         return response.json();
