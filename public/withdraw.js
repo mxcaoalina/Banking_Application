@@ -42,18 +42,17 @@ function WithdrawForm(props) {
     fetch(`/account/update/${email}/-${amount}`)
       .then(response => response.json()) // Use .json() if the response is JSON
       .then(data => {
-        if (data && data.value && data.value.balance !== undefined) { // Check if response includes balance
-          props.setStatus(`Withdrawal successful.`);
-          props.setBalance(data.value.balance); // Update the balance in the parent component
+        if (data.success) {
+          props.setStatus('Withdraw success!');
+          props.setBalance(data.value.balance); // Assuming 'data.value.balance' contains the updated balance
           props.setShow(false);
         } else {
-          props.setStatus('Withdrawal failed or account not found');
+          props.setStatus(data.message);
         }
-        console.log('JSON:', data);
       })
-      .catch(err => {
-        props.setStatus('Withdrawal failed');
-        console.error('Fetch error:', err);
+      .catch(error => {
+        console.error('Fetch error:', error);
+        props.setStatus('Error: Unable to complete the withdraw');
       });
   }
 
