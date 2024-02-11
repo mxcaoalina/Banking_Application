@@ -48,19 +48,22 @@ async function findOneByGoogleId(googleId) {
 async function update(email, amount) {
     const collection = getDb().collection('users');
     try {
+        console.log(`Updating user ${email} with amount ${amount}`); // Debugging log
         const result = await collection.findOneAndUpdate(
             { email: email },
             { $inc: { balance: amount } },
             { returnDocument: 'after' }
         );
+        console.log('Update result:', result); // Log the result to see what's happening
         if (result.value) {
-            return { success: true, value: result.value }; // Correctly access the result properties
+            return { success: true, value: result.value };
         } else {
+            console.log(`No document found or updated for email ${email}`); // More detailed log
             return { success: false, message: 'Update failed or account not found' };
         }
     } catch (error) {
         console.error('Update operation failed:', error);
-        return { success: false, message: 'Internal server error' };
+        return { success: false, message: 'Internal server error', error: error.message };
     }
 }
 
