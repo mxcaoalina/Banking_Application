@@ -58,46 +58,22 @@ app.use(express.json());
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
 const PORT = process.env.PORT || 3000;
 
-// Update MongoDB connection with retry logic
+// Update connectDB function
 async function connectDB() {
-    const maxRetries = 3;
-    let retryCount = 0;
-    
-    while (retryCount < maxRetries) {
-        try {
-            console.log(`Connection attempt ${retryCount + 1} of ${maxRetries}`);
-            console.log('Attempting to connect to MongoDB at:', MONGODB_URI);
-            
-            const client = await MongoClient.connect(MONGODB_URI, {
-                serverSelectionTimeoutMS: 5000,
-                socketTimeoutMS: 45000,
-            });
-            
-            db = client.db('badbank');
-            console.log('Connected to MongoDB');
-            
-            // List available collections
-            const collections = await db.listCollections().toArray();
-            console.log('Available collections:', collections.map(c => c.name));
-            
-            // Set up connection error handler
-            client.on('error', (error) => {
-                console.error('MongoDB connection error:', error);
-            });
-            
-            return db;
-        } catch (error) {
-            retryCount++;
-            console.error(`Connection attempt ${retryCount} failed:`, error);
-            
-            if (retryCount === maxRetries) {
-                console.error('Max retries reached. Exiting...');
-                throw error;
-            }
-            
-            // Wait before retrying (exponential backoff)
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-        }
+    try {
+        console.log(`Attempting to connect to MongoDB at: ${MONGODB_URI}`);
+        const client = await MongoClient.connect(MONGODB_URI);
+        db = client.db(process.env.DB_NAME || 'badbank');
+        console.log('Connected to MongoDB');
+        
+        // List available collections
+        const collections = await db.listCollections().toArray();
+        console.log('Available collections:', collections.map(c => c.name));
+        
+        return db;
+    } catch (error) {
+        console.error('Error connecting to MongoDB:', error);
+        throw error;
     }
 }
 
