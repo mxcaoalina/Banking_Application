@@ -38,10 +38,16 @@ function CreateForm(props){
   const [password, setPassword] = React.useState('');
 
  async function handle(){
-    console.log(name,email,password);
-    const url = `/account/create/${name}/${email}/${password}`;
-    var res  = await fetch(url);
-    var data = await res.json();    
+    console.log(name, email, password);
+    const url = `/account/create`;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password })
+    });
+    const data = await response.json();    
     console.log(data);        
     
     props.setCurrentUser({ email: email });

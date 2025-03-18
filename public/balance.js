@@ -1,73 +1,109 @@
 function Balance() {
   const [show, setShow] = React.useState(true);
   const [status, setStatus] = React.useState('');
-  const [balance, setBalance] = React.useState(''); // Add balance state
+  const [balance, setBalance] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [retryCount, setRetryCount] = React.useState(0);
+  const ctx = React.useContext(UserContext);
+  const { currentUser } = ctx;
+
+  const fetchBalance = async () => {
+    try {
+      console.log('=== Starting balance fetch ===');
+      console.log('Auth status:', !!currentUser);
+      console.log('Current user:', currentUser);
+      console.log('Retry count:', retryCount);
+      
+      if (!currentUser || !currentUser.email) {
+        console.log('No authenticated user or email found');
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      const email = currentUser.email;
+      console.log('Fetching balance for:', email);
+      
+      const response = await fetch(`/account/balance/${encodeURIComponent(email)}`);
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.log('Error response data:', errorData);
+        
+        if (response.status === 404 && retryCount < 3) {
+          console.log('User not found, retrying in 1 second...');
+          setRetryCount(prev => prev + 1);
+          setTimeout(fetchBalance, 1000); // 延迟1秒后重试
+          return;
+        }
+        
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Balance data:', data);
+      
+      if (data.success) {
+        setBalance(data.balance);
+        setStatus('');
+      } else {
+        setStatus(data.message || 'Failed to fetch balance');
+      }
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+      setStatus('Error fetching balance');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (currentUser && currentUser.email) {
+      fetchBalance();
+    } else {
+      setIsLoading(false);
+    }
+  }, [currentUser, retryCount]);
+
+  if (!currentUser) {
+    return (
+      <Card
+        bgcolor="danger"
+        header="Access Denied"
+        status="Please login to access this feature"
+        body={
+          <div>
+            <p>You must be logged in to view your balance.</p>
+            <a href="#/login" className="btn btn-light">Go to Login</a>
+          </div>
+        }
+      />
+    );
+  }
 
   return (
     <Card
       bgcolor="info"
       header="Balance"
       status={status}
-      body={show ? 
-        <BalanceForm setShow={setShow} setStatus={setStatus} setBalance={setBalance} /> : // Pass setBalance down
-        <BalanceMsg setShow={setShow} setStatus={setStatus} balance={balance} />} // Pass balance down
+      body={
+        isLoading ? (
+          <div className="text-center">
+            <div className="spinner-border text-light" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        ) : (
+          <>
+            Balance<br/>
+            <h2>${balance}</h2>
+          </>
+        )
+      }
     />
   );
 }
 
-function BalanceMsg(props) {
-  return (
-    <>
-      <h5>Balance: ${props.balance}</h5> {/* Display balance */}
-      <button type="submit"
-        className="btn btn-light"
-        onClick={() => {
-          props.setShow(true);
-          props.setStatus('');
-          props.setBalance(''); // Optionally reset balance if needed
-        }}>
-        Check balance again
-      </button>
-    </>
-  );
-}
-
-function BalanceForm(props) {
-  const [email, setEmail] = React.useState('');
-
-  function handle() {
-    fetch(`/account/findOne/${email}`)
-      .then(response => response.json())
-      .then(data => {
-        if (data && data.balance !== undefined) {
-          props.setBalance(data.balance); // Update balance in parent's state
-         // props.setStatus(`Balance: $${data.balance}`); // Optionally set a status message
-        } else {
-          props.setStatus('Account not found or error retrieving balance');
-        }
-        props.setShow(false);
-        console.log('JSON:', data);
-      })
-      .catch(err => {
-        console.error('Fetch error:', err);
-        props.setStatus('Error fetching account details');
-      });
-  }
-
-  return (
-    <>
-      Email<br/>
-      <input type="input"
-        className="form-control"
-        placeholder="Enter email"
-        value={email}
-        onChange={e => setEmail(e.currentTarget.value)} /><br/>
-
-      <button type="submit"
-        className="btn btn-light"
-        onClick={handle}>
-        Check Balance
-      </button>
-    </>
-  );
-}
+// Export to window object
+window.Balance = Balance; 

@@ -1,29 +1,45 @@
+const React = window.React;
+const ReactDOM = window.ReactDOM;
+const { HashRouter, Routes, Route } = window.ReactRouterDOM;
+
+// Import components
+const UserProvider = window.UserProvider;
+const NavBar = window.NavBar;
+const Home = window.Home;
+const CreateAccount = window.CreateAccount;
+const Login = window.Login;
+const Deposit = window.Deposit;
+const Withdraw = window.Withdraw;
+const Balance = window.Balance;
+const AllData = window.AllData;
+
 function Spa() {
   return (
-    <UserProvider>
-      <HashRouter>
+    <HashRouter>
+      <UserProvider>
         <div>
-          <NavBar/>        
-          
-            <div className="container" style={{padding: "20px"}}>
-              <Route path="/" exact component={Home} />
-              <Route path="/CreateAccount/" component={CreateAccount} />
-              <Route path="/login/" component={Login} />
-              <Route path="/deposit/" component={Deposit} />
-              <Route path="/withdraw/" component={Withdraw} />
+          <NavBar />
+          <div className="container" style={{padding: "20px"}}>
+            <Routes>
+              <Route path="/" element={<Home/>} />
+              <Route path="/CreateAccount" element={<CreateAccount/>} />
+              <Route path="/login" element={<Login/>} />
+              <Route path="/deposit" element={<Deposit/>} />
+              <Route path="/withdraw" element={<Withdraw/>} />
               {/* <Route path="/transactions/" component={Transactions} /> */}
-              <Route path="/balance/" component={Balance} />
-              <Route path="/alldata/" component={AllData} />
-            </div>
-          
+              <Route path="/balance" element={<Balance/>} />
+              <Route path="/alldata" element={<AllData/>} />
+            </Routes>
+          </div>
         </div>
-      </HashRouter>
-    </UserProvider>
-    
+      </UserProvider>
+    </HashRouter>
   );
 }
 
-ReactDOM.render(
-  <Spa/>,
-  document.getElementById('root')
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <Spa />
+  </React.StrictMode>
 );

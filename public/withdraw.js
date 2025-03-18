@@ -1,7 +1,24 @@
 function Withdraw() {
   const [show, setShow] = React.useState(true);
   const [status, setStatus] = React.useState('');
-  const [balance, setBalance] = React.useState(0); // Add balance state
+  const [balance, setBalance] = React.useState(0);
+  const { isAuthenticated, currentUser } = React.useContext(UserContext);
+
+  if (!isAuthenticated) {
+    return (
+      <Card
+        bgcolor="danger"
+        header="Access Denied"
+        status="Please login to access this feature"
+        body={
+          <div>
+            <p>You must be logged in to make withdrawals.</p>
+            <a href="#/login" className="btn btn-light">Go to Login</a>
+          </div>
+        }
+      />
+    );
+  }
 
   return (
     <Card
@@ -9,18 +26,17 @@ function Withdraw() {
       header="Withdraw"
       status={status}
       body={show ? 
-        <WithdrawForm setShow={setShow} setStatus={setStatus} setBalance={setBalance}/> : // Pass setBalance to WithdrawForm
-        <WithdrawMsg setShow={setShow} setStatus={setStatus} balance={balance}/> // Pass balance to WithdrawMsg
+        <WithdrawForm setShow={setShow} setStatus={setStatus} setBalance={setBalance} email={currentUser.email}/> : 
+        <WithdrawMsg setShow={setShow} setStatus={setStatus} balance={balance}/>
       }
     />
   );
 }
 
-
 function WithdrawMsg(props) {
   return (
     <>
-      <h5>Current Balance: ${props.balance}</h5> {/* Display the current balance */}
+      <h5>Current Balance: ${props.balance}</h5>
       <button type="submit" 
         className="btn btn-light" 
         onClick={() => {
@@ -33,48 +49,51 @@ function WithdrawMsg(props) {
   );
 }
 
-
 function WithdrawForm(props) {
-  const [email, setEmail] = React.useState('');
   const [amount, setAmount] = React.useState('');
 
   function handle() {
-    fetch(`/account/update/${email}/-${amount}`)
-      .then(response => response.json()) // Use .json() if the response is JSON
-      .then(data => {
-        if (data.success) {
-          props.setStatus('Withdraw success!');
-          props.setBalance(data.value.balance); // Assuming 'data.value.balance' contains the updated balance
-          props.setShow(false);
+    fetch(`/account/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            email: props.email,
+            amount: -parseFloat(amount)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Withdraw response:', data);
+        if (data.success && data.value) {
+            console.log('Withdraw successful, new balance:', data.value.balance);
+            props.setStatus('Withdraw success!');
+            props.setBalance(data.value.balance);
+            props.setShow(false);
         } else {
-          props.setStatus(data.message);
+            console.log('Withdraw failed:', data.message);
+            props.setStatus(data.message || 'Withdraw failed');
         }
-      })
-      .catch(error => {
+    })
+    .catch(error => {
         console.error('Fetch error:', error);
         props.setStatus('Error: Unable to complete the withdraw');
-      });
+    });
   }
 
   return (
     <>
-      Email<br/>
-      <input type="input" 
-        className="form-control" 
-        placeholder="Enter email" 
-        value={email} onChange={e => setEmail(e.currentTarget.value)}/><br/>
-      
       Amount<br/>
-      <input type="number" 
-        className="form-control" 
-        placeholder="Enter amount" 
-        value={amount} onChange={e => setAmount(e.currentTarget.value)}/><br/>
+      <input type="number"
+        className="form-control"
+        placeholder="Enter amount"
+        value={amount}
+        onChange={e => setAmount(e.currentTarget.value)}/><br/>
 
-      <button type="submit" 
-        className="btn btn-light" 
-        onClick={handle}>
-          Withdraw
-      </button>
+      <button type="submit"
+        className="btn btn-light"
+        onClick={handle}>Withdraw</button>
     </>
   );
 }
