@@ -15,7 +15,7 @@ function AllData() {
                     return;
                 }
 
-                const response = await fetch('/account/all', {
+                const response = await fetch(`/account/all?email=${encodeURIComponent(currentUser.email)}`, {
                     headers: {
                         'x-user-email': currentUser.email
                     }

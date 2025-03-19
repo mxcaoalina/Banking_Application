@@ -53,6 +53,10 @@ function encrypt(text) {
 // Decryption function
 function decrypt(text) {
     try {
+        // Check if the text is encrypted (contains colons)
+        if (!text.includes(':')) {
+            return parseFloat(text); // Return plain text value if not encrypted
+        }
         const [ivHex, authTagHex, encryptedHex] = text.split(':');
         const iv = Buffer.from(ivHex, 'hex');
         const authTag = Buffer.from(authTagHex, 'hex');
@@ -260,9 +264,38 @@ function logEvent(eventType, details) {
     console.log(`[${timestamp}] ${eventType}:`, JSON.stringify(details, null, 2));
 }
 
+// Migration function to encrypt all existing balances
+async function migrateBalances() {
+    try {
+        const db = getDb();
+        const users = await db.collection('users').find({}).toArray();
+        
+        for (const user of users) {
+            // Skip if balance is already encrypted
+            if (user.balance && user.balance.includes(':')) {
+                continue;
+            }
+            
+            // Encrypt the balance
+            const encryptedBalance = encrypt(user.balance);
+            
+            // Update the user document
+            await db.collection('users').updateOne(
+                { _id: user._id },
+                { $set: { balance: encryptedBalance } }
+            );
+            
+            console.log(`Migrated balance for user: ${user.email}`);
+        }
+        
+        console.log('Balance migration completed successfully');
+    } catch (error) {
+        console.error('Error during balance migration:', error);
+    }
+}
+
+// Modify the update function to ensure balances are encrypted
 async function update(email, amount) {
-    console.log('Updating user', email, 'with amount', amount);
-    
     try {
         const db = getDb();
         const user = await findOne(email);
@@ -270,40 +303,48 @@ async function update(email, amount) {
         if (!user) {
             throw new Error('User not found');
         }
-        
-        const currentBalance = user.balance;
+
+        // Decrypt current balance if it's encrypted
+        const currentBalance = decrypt(user.balance);
         const newBalance = currentBalance + amount;
-        
+
         if (newBalance < 0) {
             return { success: false, message: 'Insufficient funds' };
         }
-        
-        // Encrypt new balance before updating
+
+        // Encrypt the new balance before saving
         const encryptedBalance = encrypt(newBalance);
         
         const result = await db.collection('users').updateOne(
-            { email },
+            { email: email },
             { 
                 $set: { 
                     balance: encryptedBalance,
                     updatedAt: new Date()
                 }
-            },
-            { returnDocument: 'after' }
+            }
         );
-        
-        if (!result.acknowledged) {
+
+        if (result.modifiedCount === 0) {
             throw new Error('Update failed');
         }
-        
-        // Decrypt balance for response
-        const updatedUser = {
-            ...result.value,
-            balance: newBalance
+
+        // Log the transaction
+        logEvent('TRANSACTION_SUCCESS', {
+            email,
+            amount,
+            oldBalance: currentBalance,
+            newBalance
+        });
+
+        return {
+            success: true,
+            value: {
+                ...user,
+                balance: newBalance,
+                updatedAt: new Date()
+            }
         };
-        
-        console.log('Update successful:', updatedUser);
-        return { success: true, value: updatedUser };
     } catch (error) {
         console.error('Error in update function:', error);
         return { success: false, message: error.message };
@@ -316,8 +357,23 @@ async function verifyPassword(password, hashedPassword) {
 }
 
 async function all() {
-    const collection = getDb().collection('users');
-    return collection.find({}).toArray();
+    try {
+        console.log('=== Starting all function ===');
+        const collection = getDb().collection('users');
+        const users = await collection.find({}).toArray();
+        
+        // Decrypt balances for all users
+        const usersWithDecryptedBalances = users.map(user => ({
+            ...user,
+            balance: decrypt(user.balance)
+        }));
+        
+        console.log(`Retrieved ${usersWithDecryptedBalances.length} users with decrypted balances`);
+        return usersWithDecryptedBalances;
+    } catch (error) {
+        console.error('Error in all function:', error);
+        throw error;
+    }
 }
 
 async function getBalance(email) {
@@ -417,5 +473,6 @@ module.exports = {
     getBalance,
     updateUserRole,
     updateUserPassword,
-    logEvent
+    logEvent,
+    migrateBalances
 };
