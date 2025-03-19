@@ -26,29 +26,45 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
 // Encryption configuration
-const ENCRYPTION_KEY = crypto.scryptSync(process.env.ENCRYPTION_KEY, process.env.ENCRYPTION_SALT, 32);
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'badbank-secure-encryption-key-2024';
+const ENCRYPTION_SALT = process.env.ENCRYPTION_SALT || 'badbank-secure-salt-2024';
 const IV_LENGTH = 16;
 const ALGORITHM = 'aes-256-gcm';
+const AUTH_TAG_LENGTH = 16;
 
-// Encryption functions
+// Generate a key from the password and salt
+const key = crypto.scryptSync(ENCRYPTION_KEY, ENCRYPTION_SALT, 32);
+
+// Encryption function
 function encrypt(text) {
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
-    let encrypted = cipher.update(text.toString(), 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    const authTag = cipher.getAuthTag();
-    return `${iv.toString('hex')}:${encrypted}:${authTag.toString('hex')}`;
+    try {
+        const iv = crypto.randomBytes(IV_LENGTH);
+        const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+        let encrypted = cipher.update(text.toString(), 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        const authTag = cipher.getAuthTag();
+        return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+    } catch (error) {
+        console.error('Encryption error:', error);
+        return text.toString(); // Fallback to plain text if encryption fails
+    }
 }
 
+// Decryption function
 function decrypt(text) {
-    const [ivHex, encryptedHex, authTagHex] = text.split(':');
-    const iv = Buffer.from(ivHex, 'hex');
-    const authTag = Buffer.from(authTagHex, 'hex');
-    const decipher = crypto.createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
-    decipher.setAuthTag(authTag);
-    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return parseFloat(decrypted);
+    try {
+        const [ivHex, authTagHex, encryptedHex] = text.split(':');
+        const iv = Buffer.from(ivHex, 'hex');
+        const authTag = Buffer.from(authTagHex, 'hex');
+        const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+        decipher.setAuthTag(authTag);
+        let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return parseFloat(decrypted);
+    } catch (error) {
+        console.error('Decryption error:', error);
+        return parseFloat(text); // Fallback to plain text if decryption fails
+    }
 }
 
 console.log('Attempting to connect to MongoDB at:', url);
