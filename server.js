@@ -57,13 +57,17 @@ app.use(express.json());
 // Get MongoDB URI from environment variable or use local MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
 const PORT = process.env.PORT || 3000;
+const DB_NAME = process.env.DB_NAME || 'badbank';
+
+let client;
+let db;
 
 // Update connectDB function
 async function connectDB() {
     try {
         console.log(`Attempting to connect to MongoDB at: ${MONGODB_URI}`);
-        const client = await MongoClient.connect(MONGODB_URI);
-        db = client.db(process.env.DB_NAME || 'badbank');
+        client = await MongoClient.connect(MONGODB_URI);
+        db = client.db(DB_NAME);
         console.log('Connected to MongoDB');
         
         // List available collections
@@ -77,6 +81,20 @@ async function connectDB() {
     }
 }
 
+// Graceful shutdown
+process.on('SIGINT', async () => {
+    try {
+        if (client) {
+            await client.close();
+            console.log('MongoDB connection closed.');
+        }
+        process.exit(0);
+    } catch (err) {
+        console.error('Error during shutdown:', err);
+        process.exit(1);
+    }
+});
+
 // Initialize database connection and setup routes
 async function initializeServer() {
     try {
@@ -85,9 +103,18 @@ async function initializeServer() {
         await connectDB();
         console.log('Database connected successfully');
         
-        app.listen(PORT, () => {
+        const server = app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
             console.log('=== Server initialization completed ===');
+        });
+
+        // Handle server errors
+        server.on('error', (error) => {
+            console.error('Server error:', error);
+            if (error.code === 'EADDRINUSE') {
+                console.error(`Port ${PORT} is already in use`);
+                process.exit(1);
+            }
         });
     } catch (error) {
         console.error('Failed to initialize server:', error);
