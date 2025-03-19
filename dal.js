@@ -41,7 +41,12 @@ async function connectDB() {
                 serverSelectionTimeoutMS: 5000,
                 socketTimeoutMS: 45000,
                 maxPoolSize: 10,
-                minPoolSize: 5
+                minPoolSize: 5,
+                retryWrites: true,
+                w: 'majority',
+                authSource: 'admin',
+                useUnifiedTopology: true,
+                useNewUrlParser: true
             });
             db = client.db(dbName);
             console.log('Connected to MongoDB');
@@ -357,6 +362,32 @@ async function updateUserRole(email, role) {
     }
 }
 
+async function updateUserPassword(email, newPassword) {
+    try {
+        console.log('=== Starting password update ===');
+        console.log('Updating password for user:', email);
+        
+        const collection = getDb().collection('users');
+        const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+        
+        const result = await collection.updateOne(
+            { email: email },
+            { 
+                $set: { 
+                    password: hashedPassword,
+                    updatedAt: new Date()
+                } 
+            }
+        );
+        
+        console.log('Password update result:', result);
+        return result;
+    } catch (error) {
+        console.error('Error updating password:', error);
+        throw error;
+    }
+}
+
 // Export as an object named 'dal'
 module.exports = {
     connectDB,
@@ -370,5 +401,6 @@ module.exports = {
     all,
     getBalance,
     updateUserRole,
+    updateUserPassword,
     logEvent
 };

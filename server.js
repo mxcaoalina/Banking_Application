@@ -123,12 +123,22 @@ app.post('/account/login', async (req, res) => {
             });
         }
 
+        // Verify password
+        const isValidPassword = await dal.verifyPassword(password, user.password);
+        if (!isValidPassword) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid password'
+            });
+        }
+
         res.json({
             success: true,
             user: {
                 name: user.name,
                 email: user.email,
-                balance: user.balance
+                balance: user.balance,
+                role: user.role || 'user'
             }
         });
     } catch (error) {
@@ -225,6 +235,24 @@ app.get('/account/balance/:email', async (req, res) => {
             success: false,
             message: error.message
         });
+    }
+});
+
+app.post('/account/update-password', async (req, res) => {
+    try {
+        const { email, newPassword } = req.body;
+        console.log('Updating password for:', email);
+        
+        const result = await dal.updateUserPassword(email, newPassword);
+        
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+        console.error('Error updating password:', error);
+        res.status(500).json({ error: 'Failed to update password' });
     }
 });
 
