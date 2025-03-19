@@ -2,8 +2,9 @@ const { MongoClient } = require('mongodb');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-const url = 'mongodb://127.0.0.1:27017';
-const dbName = 'badbank';
+// Use environment variables for MongoDB connection
+const url = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
+const dbName = process.env.DB_NAME || 'badbank';
 
 let db = null;
 let client = null;
