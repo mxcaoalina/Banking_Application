@@ -6,7 +6,11 @@ const { MongoClient } = require('mongodb');
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: ['https://badbank-full-stack-capstone-844c728b4974.herokuapp.com', 'http://localhost:3000'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.static('public'));
 
 // Add input validation middleware
@@ -121,6 +125,154 @@ async function initializeServer() {
         process.exit(1);
     }
 }
+
+// Account routes
+app.post('/account/create', async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        console.log('=== Starting account creation ===');
+        console.log('Creating account for:', { name, email });
+        
+        const result = await dal.create(name, email, password);
+        console.log('Account creation result:', result);
+        
+        res.json({
+            success: true,
+            message: 'Account created successfully'
+        });
+    } catch (error) {
+        console.error('Error creating account:', error);
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+app.post('/account/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        console.log('Login attempt for:', email);
+        
+        const user = await dal.findOne(email);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            user: {
+                name: user.name,
+                email: user.email,
+                balance: user.balance
+            }
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+app.post('/account/update', validateTransaction, async (req, res) => {
+    try {
+        const { email, amount } = req.body;
+        console.log('Updating account for:', email, 'amount:', amount);
+        
+        const result = await dal.update(email, Number(amount));
+        console.log('Update result:', result);
+        
+        if (result.success) {
+            res.json({
+                success: true,
+                balance: result.value.balance
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: result.message
+            });
+        }
+    } catch (error) {
+        console.error('Error in update:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+app.post('/account/findOne', async (req, res) => {
+    try {
+        const { email } = req.body;
+        console.log('Finding user with email:', email);
+        
+        const user = await dal.findOne(email);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Remove sensitive data before sending
+        const safeUser = {
+            name: user.name,
+            email: user.email,
+            balance: user.balance,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
+        };
+
+        res.json({
+            success: true,
+            user: safeUser
+        });
+    } catch (error) {
+        console.error('Error finding user:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+app.get('/account/balance/:email', async (req, res) => {
+    try {
+        console.log('=== Starting balance request ===');
+        console.log('Raw request params:', req.params);
+        
+        const email = decodeURIComponent(req.params.email);
+        console.log('Decoded email:', email);
+        
+        console.log('Checking if user exists...');
+        const user = await dal.findOne(email);
+        if (!user) {
+            console.log('User not found');
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        console.log('Found user balance:', user.balance);
+        res.json({
+            success: true,
+            balance: user.balance
+        });
+    } catch (error) {
+        console.error('Error getting balance:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
 
 // Add error handling middleware
 app.use(errorHandler);

@@ -5,7 +5,7 @@ function Login() {
     const { login } = React.useContext(UserContext);
 
     function handle() {
-        fetch(`/account/login`, {
+        fetch(`${window.API_URL}/account/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -73,19 +73,28 @@ function LoginForm({ setShow, setStatus, handleGoogleLogin }){
   const [password, setPassword] = React.useState('');
 
   function handle(){
-    fetch(`/account/login/${email}/${password}`)
-      .then(response => response.text())
-      .then(text => {
-        try {
-          const data = JSON.parse(text);
-          setStatus('');
-          setShow(false);
-          console.log('JSON:', data);
-        } catch(err) {
-          setStatus(text);
-          console.log('err:', text);
-        }
-      });
+    fetch(`${window.API_URL}/account/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        setStatus('');
+        setShow(false);
+        console.log('Login successful:', data);
+      } else {
+        setStatus(data.message || 'Login failed');
+        console.log('Login failed:', data);
+      }
+    })
+    .catch(error => {
+      console.error('Login error:', error);
+      setStatus('Error: Unable to login');
+    });
   }
   
 

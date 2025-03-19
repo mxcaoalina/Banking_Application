@@ -39,7 +39,7 @@ function CreateForm(props){
 
  async function handle(){
     console.log(name, email, password);
-    const url = `/account/create`;
+    const url = `${window.API_URL}/account/create`;
     const response = await fetch(url, {
         method: 'POST',
         headers: {
