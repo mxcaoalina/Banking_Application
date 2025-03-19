@@ -362,14 +362,18 @@ async function all() {
         const collection = getDb().collection('users');
         const users = await collection.find({}).toArray();
         
-        // Decrypt balances for all users
-        const usersWithDecryptedBalances = users.map(user => ({
-            ...user,
-            balance: decrypt(user.balance)
+        // Return users without sensitive data
+        const sanitizedUsers = users.map(user => ({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
         }));
         
-        console.log(`Retrieved ${usersWithDecryptedBalances.length} users with decrypted balances`);
-        return usersWithDecryptedBalances;
+        console.log(`Retrieved ${sanitizedUsers.length} users (without sensitive data)`);
+        return sanitizedUsers;
     } catch (error) {
         console.error('Error in all function:', error);
         throw error;
