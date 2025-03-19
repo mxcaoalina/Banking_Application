@@ -1,8 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const dal = require('./dal');
 const app = express();
-const { MongoClient } = require('mongodb');
 
 // Middleware
 app.use(express.json());
@@ -58,46 +58,7 @@ const requestLogger = (req, res, next) => {
 app.use(requestLogger);
 app.use(express.json());
 
-// Get MongoDB URI from environment variable or use local MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
 const PORT = process.env.PORT || 3000;
-const DB_NAME = process.env.DB_NAME || 'badbank';
-
-let client;
-let db;
-
-// Update connectDB function
-async function connectDB() {
-    try {
-        console.log(`Attempting to connect to MongoDB at: ${MONGODB_URI}`);
-        client = await MongoClient.connect(MONGODB_URI);
-        db = client.db(DB_NAME);
-        console.log('Connected to MongoDB');
-        
-        // List available collections
-        const collections = await db.listCollections().toArray();
-        console.log('Available collections:', collections.map(c => c.name));
-        
-        return db;
-    } catch (error) {
-        console.error('Error connecting to MongoDB:', error);
-        throw error;
-    }
-}
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-    try {
-        if (client) {
-            await client.close();
-            console.log('MongoDB connection closed.');
-        }
-        process.exit(0);
-    } catch (err) {
-        console.error('Error during shutdown:', err);
-        process.exit(1);
-    }
-});
 
 // Initialize database connection and setup routes
 async function initializeServer() {

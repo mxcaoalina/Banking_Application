@@ -1,9 +1,18 @@
+require('dotenv').config();
+console.log('Environment variables:');
+console.log('MONGODB_URI:', process.env.MONGODB_URI);
+console.log('DB_NAME:', process.env.DB_NAME);
+
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcrypt');
 
 // Use environment variables for MongoDB connection
-const url = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
-const dbName = process.env.DB_NAME || 'badbank';
+const url = process.env.MONGODB_URI;
+const dbName = process.env.DB_NAME;
+
+if (!url || !dbName) {
+    throw new Error('MongoDB connection details not found in environment variables');
+}
 
 let db = null;
 let client = null;
