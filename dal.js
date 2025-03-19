@@ -38,10 +38,10 @@ async function connectDB() {
 
             console.log(`Connection attempt ${retries + 1} of ${MAX_RETRIES}`);
             client = await MongoClient.connect(url, {
-                useNewUrlParser: true,
-                useUnifiedTopology: true,
                 serverSelectionTimeoutMS: 5000,
                 socketTimeoutMS: 45000,
+                maxPoolSize: 10,
+                minPoolSize: 5
             });
             db = client.db(dbName);
             console.log('Connected to MongoDB');
