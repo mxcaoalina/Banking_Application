@@ -28,7 +28,12 @@ async function connectDB() {
             }
 
             console.log(`Connection attempt ${retries + 1} of ${MAX_RETRIES}`);
-            client = await MongoClient.connect(url);
+            client = await MongoClient.connect(url, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+                serverSelectionTimeoutMS: 5000,
+                socketTimeoutMS: 45000,
+            });
             db = client.db(dbName);
             console.log('Connected to MongoDB');
             
@@ -55,6 +60,20 @@ async function connectDB() {
         }
     }
 }
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+    try {
+        if (client) {
+            await client.close();
+            console.log('MongoDB connection closed.');
+        }
+        process.exit(0);
+    } catch (err) {
+        console.error('Error during shutdown:', err);
+        process.exit(1);
+    }
+});
 
 function getDb() {
     if (!db) {
