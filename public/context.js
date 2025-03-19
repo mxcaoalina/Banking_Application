@@ -68,6 +68,7 @@ function UserProvider({ children }) {
         setCurrentUser(null);
         setIsAuthenticated(false);
         localStorage.removeItem('userEmail');
+        window.location.hash = '#/';  // Redirect to home page
     };
 
     return (
