@@ -25,26 +25,30 @@ const SALT_ROUNDS = 10;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
-// Encryption key and IV from environment variables
+// Encryption configuration
 const ENCRYPTION_KEY = crypto.scryptSync(process.env.ENCRYPTION_KEY, process.env.ENCRYPTION_SALT, 32);
 const IV_LENGTH = 16;
+const ALGORITHM = 'aes-256-gcm';
 
 // Encryption functions
 function encrypt(text) {
     const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
+    const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+    let encrypted = cipher.update(text.toString(), 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    return iv.toString('hex') + ':' + encrypted;
+    const authTag = cipher.getAuthTag();
+    return `${iv.toString('hex')}:${encrypted}:${authTag.toString('hex')}`;
 }
 
 function decrypt(text) {
-    const [ivHex, encryptedHex] = text.split(':');
+    const [ivHex, encryptedHex, authTagHex] = text.split(':');
     const iv = Buffer.from(ivHex, 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+    const authTag = Buffer.from(authTagHex, 'hex');
+    const decipher = crypto.createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+    decipher.setAuthTag(authTag);
     let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    return decrypted;
+    return parseFloat(decrypted);
 }
 
 console.log('Attempting to connect to MongoDB at:', url);
@@ -121,23 +125,22 @@ function getDb() {
 
 async function create(name, email, password, role = 'user') {
     console.log('=== Starting create function ===');
+    console.log('Creating user with:', { name, email, role });
+    
     try {
-        const db = await getDb();
+        const db = getDb();
         console.log('Database collection accessed');
         
-        // Check if user exists
-        const existingUser = await findOne(email);
-        if (existingUser) {
-            throw new Error('User already exists');
-        }
-        
-        // Generate initial balance and encrypt it
+        // Generate initial balance
         const initialBalance = Math.floor(Math.random() * 100) + 1;
-        const encryptedBalance = encrypt(initialBalance.toString());
+        console.log('Generated initial balance:', initialBalance);
         
         // Hash password
-        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        const hashedPassword = await bcrypt.hash(password, 10);
         console.log('Password hashed successfully');
+        
+        // Encrypt initial balance
+        const encryptedBalance = encrypt(initialBalance);
         
         const user = {
             name,
@@ -151,8 +154,7 @@ async function create(name, email, password, role = 'user') {
         
         console.log('Inserting document:', {
             ...user,
-            password: '[HIDDEN]',
-            balance: '[ENCRYPTED]'
+            password: '[HIDDEN]'
         });
         
         const result = await db.collection('users').insertOne(user);
@@ -160,7 +162,7 @@ async function create(name, email, password, role = 'user') {
         
         return result;
     } catch (error) {
-        console.error('Error in create:', error);
+        console.error('Error in create function:', error);
         throw error;
     }
 }
@@ -172,25 +174,27 @@ async function find(email) {
 
 async function findOne(email) {
     console.log('=== Starting findOne function ===');
+    console.log('Input email:', email);
+    
     try {
-        const db = await getDb();
+        const db = getDb();
         console.log('Database collection accessed');
-        console.log('Attempting to find user with email:', email);
         
+        console.log('Attempting to find user with email:', email);
         const user = await db.collection('users').findOne({ email });
         
         if (user) {
-            // Decrypt balance before sending
+            // Decrypt balance before returning
             const decryptedBalance = decrypt(user.balance);
             const userWithDecryptedBalance = {
                 ...user,
-                balance: parseFloat(decryptedBalance)
+                balance: decryptedBalance
             };
             
             console.log('Found user:', {
                 email: user.email,
                 name: user.name,
-                balance: userWithDecryptedBalance.balance,
+                balance: decryptedBalance,
                 hasPassword: !!user.password
             });
             
@@ -200,7 +204,7 @@ async function findOne(email) {
         console.log('Error: User not found for email:', email);
         throw new Error('User not found for email: ' + email);
     } catch (error) {
-        console.error('Error in findOne:', error);
+        console.error('Error in findOne function:', error);
         throw error;
     }
 }
@@ -241,50 +245,52 @@ function logEvent(eventType, details) {
 }
 
 async function update(email, amount) {
-    console.log('=== Starting update function ===');
+    console.log('Updating user', email, 'with amount', amount);
+    
     try {
-        const db = await getDb();
-        console.log('Database collection accessed');
-        
-        // Get current user
+        const db = getDb();
         const user = await findOne(email);
+        
         if (!user) {
             throw new Error('User not found');
         }
         
-        // Calculate new balance
-        const currentBalance = parseFloat(user.balance);
+        const currentBalance = user.balance;
         const newBalance = currentBalance + amount;
         
-        // Encrypt new balance
-        const encryptedBalance = encrypt(newBalance.toString());
+        if (newBalance < 0) {
+            return { success: false, message: 'Insufficient funds' };
+        }
         
-        // Update user with encrypted balance
+        // Encrypt new balance before updating
+        const encryptedBalance = encrypt(newBalance);
+        
         const result = await db.collection('users').updateOne(
             { email },
-            {
-                $set: {
+            { 
+                $set: { 
                     balance: encryptedBalance,
                     updatedAt: new Date()
                 }
-            }
+            },
+            { returnDocument: 'after' }
         );
         
-        if (result.modifiedCount === 0) {
+        if (!result.acknowledged) {
             throw new Error('Update failed');
         }
         
-        // Return decrypted balance for response
-        return {
-            success: true,
-            value: {
-                ...user,
-                balance: newBalance
-            }
+        // Decrypt balance for response
+        const updatedUser = {
+            ...result.value,
+            balance: newBalance
         };
+        
+        console.log('Update successful:', updatedUser);
+        return { success: true, value: updatedUser };
     } catch (error) {
-        console.error('Error in update:', error);
-        throw error;
+        console.error('Error in update function:', error);
+        return { success: false, message: error.message };
     }
 }
 
