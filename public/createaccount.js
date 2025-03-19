@@ -50,8 +50,11 @@ function CreateForm(props){
     const data = await response.json();    
     console.log(data);        
     
-    props.setCurrentUser({ email: email });
-    props.setShow(false);
+    if (data.success) {
+        window.location.hash = '#/login/';
+    } else {
+        props.setStatus(data.message || 'Account creation failed');
+    }
   }    
 
   return (<>
