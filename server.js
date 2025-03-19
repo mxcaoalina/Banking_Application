@@ -256,6 +256,41 @@ app.post('/account/update-password', async (req, res) => {
     }
 });
 
+// Get all accounts (admin only)
+app.get('/account/all', async (req, res) => {
+    try {
+        console.log('[%s] GET /account/all', new Date().toISOString());
+        
+        // Get user from session
+        const user = await dal.findOne(req.session.user.email);
+        
+        // Check if user is admin
+        if (!user || user.role !== 'admin') {
+            console.log('Unauthorized access attempt to /account/all');
+            return res.status(401).json({ error: 'Unauthorized - Admin access required' });
+        }
+        
+        // Get all users
+        const allUsers = await dal.all();
+        
+        // Remove sensitive information
+        const sanitizedUsers = allUsers.map(user => ({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            balance: user.balance,
+            role: user.role,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
+        }));
+        
+        res.json(sanitizedUsers);
+    } catch (error) {
+        console.error('Error in /account/all:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Add error handling middleware
 app.use(errorHandler);
 
