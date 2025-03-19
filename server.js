@@ -261,11 +261,20 @@ app.get('/account/all', async (req, res) => {
     try {
         console.log('[%s] GET /account/all', new Date().toISOString());
         
-        // Get user from session
-        const user = await dal.findOne(req.session.user.email);
+        // Get email from query parameters
+        const { email } = req.query;
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+        
+        // Get user from database
+        const user = await dal.findOne(email);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
         
         // Check if user is admin
-        if (!user || user.role !== 'admin') {
+        if (user.role !== 'admin') {
             console.log('Unauthorized access attempt to /account/all');
             return res.status(401).json({ error: 'Unauthorized - Admin access required' });
         }
