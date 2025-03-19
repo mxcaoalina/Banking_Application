@@ -349,17 +349,17 @@ async function updateUserRole(email, role) {
 }
 
 // Export as an object named 'dal'
-module.exports = { 
-    dal: {
-        connectDB, 
-        create, 
-        findOne, 
-        find, 
-        update, 
-        all, 
-        findOneByGoogleId,
-        verifyPassword,
-        getBalance,
-        updateUserRole
-    }
+module.exports = {
+    connectDB,
+    create,
+    find,
+    findOne,
+    findOneByGoogleId,
+    findOrCreateUserByGoogle,
+    update,
+    verifyPassword,
+    all,
+    getBalance,
+    updateUserRole,
+    logEvent
 };
