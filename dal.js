@@ -5,6 +5,7 @@ console.log('DB_NAME:', process.env.DB_NAME);
 
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
 // Use environment variables for MongoDB connection
 const url = process.env.MONGODB_URI;
@@ -23,6 +24,28 @@ const SALT_ROUNDS = 10;
 // Maximum number of connection retries
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
+
+// Encryption key and IV from environment variables
+const ENCRYPTION_KEY = crypto.scryptSync(process.env.ENCRYPTION_KEY, process.env.ENCRYPTION_SALT, 32);
+const IV_LENGTH = 16;
+
+// Encryption functions
+function encrypt(text) {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return iv.toString('hex') + ':' + encrypted;
+}
+
+function decrypt(text) {
+    const [ivHex, encryptedHex] = text.split(':');
+    const iv = Buffer.from(ivHex, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+}
 
 console.log('Attempting to connect to MongoDB at:', url);
 
@@ -97,44 +120,47 @@ function getDb() {
 }
 
 async function create(name, email, password, role = 'user') {
+    console.log('=== Starting create function ===');
     try {
-        console.log('=== Starting create function ===');
-        console.log('Creating user with:', { name, email, role });
-        
-        const collection = getDb().collection('users');
+        const db = await getDb();
         console.log('Database collection accessed');
         
-        // Generate random initial balance between 0 and 100
-        const initialBalance = Math.floor(Math.random() * 101);
-        console.log('Generated initial balance:', initialBalance);
+        // Check if user exists
+        const existingUser = await findOne(email);
+        if (existingUser) {
+            throw new Error('User already exists');
+        }
         
-        // Hash the password
+        // Generate initial balance and encrypt it
+        const initialBalance = Math.floor(Math.random() * 100) + 1;
+        const encryptedBalance = encrypt(initialBalance.toString());
+        
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
         console.log('Password hashed successfully');
         
-        const now = new Date();
-        const doc = {
+        const user = {
             name,
             email,
             password: hashedPassword,
-            balance: initialBalance,
+            balance: encryptedBalance,
             role,
-            createdAt: now,
-            updatedAt: now
+            createdAt: new Date(),
+            updatedAt: new Date()
         };
         
         console.log('Inserting document:', {
-            ...doc,
-            password: '[HIDDEN]'
+            ...user,
+            password: '[HIDDEN]',
+            balance: '[ENCRYPTED]'
         });
         
-        const result = await collection.insertOne(doc);
+        const result = await db.collection('users').insertOne(user);
         console.log('Insert result:', result);
         
-        console.log('=== Successfully completed create function ===');
         return result;
     } catch (error) {
-        console.error('Error in create function:', error);
+        console.error('Error in create:', error);
         throw error;
     }
 }
@@ -145,43 +171,36 @@ async function find(email) {
 }
 
 async function findOne(email) {
+    console.log('=== Starting findOne function ===');
     try {
-        console.log('=== Starting findOne function ===');
-        console.log('Input email:', email);
-        
-        if (!email) {
-            console.log('Error: Email is required');
-            return null;
-        }
-
-        const collection = getDb().collection('users');
+        const db = await getDb();
         console.log('Database collection accessed');
-        
-        // Try to find the user
         console.log('Attempting to find user with email:', email);
-        const user = await collection.findOne({ email: email });
         
-        if (!user) {
-            console.log('Error: User not found for email:', email);
-            return null;
+        const user = await db.collection('users').findOne({ email });
+        
+        if (user) {
+            // Decrypt balance before sending
+            const decryptedBalance = decrypt(user.balance);
+            const userWithDecryptedBalance = {
+                ...user,
+                balance: parseFloat(decryptedBalance)
+            };
+            
+            console.log('Found user:', {
+                email: user.email,
+                name: user.name,
+                balance: userWithDecryptedBalance.balance,
+                hasPassword: !!user.password
+            });
+            
+            return userWithDecryptedBalance;
         }
         
-        console.log('Found user:', { 
-            email: user.email, 
-            name: user.name,
-            balance: user.balance,
-            hasPassword: !!user.password
-        });
-        
-        console.log('=== Successfully completed findOne function ===');
-        return user;
+        console.log('Error: User not found for email:', email);
+        throw new Error('User not found for email: ' + email);
     } catch (error) {
-        console.error('=== Error in findOne function ===');
-        console.error('Error details:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
-        });
+        console.error('Error in findOne:', error);
         throw error;
     }
 }
@@ -222,75 +241,49 @@ function logEvent(eventType, details) {
 }
 
 async function update(email, amount) {
+    console.log('=== Starting update function ===');
     try {
-        logEvent('TRANSACTION_START', { email, amount });
-        const collection = getDb().collection('users');
+        const db = await getDb();
+        console.log('Database collection accessed');
         
-        // Validate input
-        if (!email || typeof email !== 'string') {
-            throw new Error('Invalid email format');
-        }
-        if (typeof amount !== 'number' || isNaN(amount)) {
-            throw new Error('Invalid amount format');
-        }
-        
-        // Check if user exists
-        const user = await collection.findOne({ email: email });
+        // Get current user
+        const user = await findOne(email);
         if (!user) {
-            logEvent('TRANSACTION_FAILED', { email, amount, reason: 'User not found' });
             throw new Error('User not found');
         }
-
-        // Check if balance is sufficient (for withdrawal operations)
-        if (amount < 0 && (user.balance + amount) < 0) {
-            logEvent('TRANSACTION_FAILED', { 
-                email, 
-                amount, 
-                currentBalance: user.balance,
-                reason: 'Insufficient funds' 
-            });
-            throw new Error('Insufficient funds');
-        }
-
-        // Use atomic operation to update balance
-        const result = await collection.updateOne(
-            { email: email },
-            { 
-                $inc: { balance: amount },
-                $set: { updatedAt: new Date() }
+        
+        // Calculate new balance
+        const currentBalance = parseFloat(user.balance);
+        const newBalance = currentBalance + amount;
+        
+        // Encrypt new balance
+        const encryptedBalance = encrypt(newBalance.toString());
+        
+        // Update user with encrypted balance
+        const result = await db.collection('users').updateOne(
+            { email },
+            {
+                $set: {
+                    balance: encryptedBalance,
+                    updatedAt: new Date()
+                }
             }
         );
-
-        if (result.matchedCount === 0) {
-            logEvent('TRANSACTION_FAILED', { email, amount, reason: 'User not found during update' });
-            throw new Error('User not found');
-        }
-
+        
         if (result.modifiedCount === 0) {
-            logEvent('TRANSACTION_FAILED', { email, amount, reason: 'Update failed' });
             throw new Error('Update failed');
         }
         
-        // Get updated user data
-        const updatedUser = await collection.findOne({ email: email });
-        
-        logEvent('TRANSACTION_SUCCESS', {
-            email,
-            amount,
-            oldBalance: user.balance,
-            newBalance: updatedUser.balance
-        });
-
+        // Return decrypted balance for response
         return {
             success: true,
-            value: updatedUser
+            value: {
+                ...user,
+                balance: newBalance
+            }
         };
     } catch (error) {
-        logEvent('TRANSACTION_ERROR', {
-            email,
-            amount,
-            error: error.message
-        });
+        console.error('Error in update:', error);
         throw error;
     }
 }
