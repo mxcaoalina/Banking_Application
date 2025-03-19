@@ -187,17 +187,10 @@ app.post('/account/update', validateTransaction, async (req, res) => {
         const result = await dal.update(email, Number(amount));
         console.log('Update result:', result);
         
-        if (result.success) {
-            res.json({
-                success: true,
-                balance: result.value.balance
-            });
-        } else {
-            res.status(400).json({
-                success: false,
-                message: result.message
-            });
-        }
+        res.json({
+            success: true,
+            balance: result.value.balance
+        });
     } catch (error) {
         console.error('Error in update:', error);
         res.status(500).json({

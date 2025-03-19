@@ -248,13 +248,14 @@ async function update(email, amount) {
         
         // Get updated user data
         const updatedUser = await collection.findOne({ email: email });
+        
         logEvent('TRANSACTION_SUCCESS', {
             email,
             amount,
             oldBalance: user.balance,
             newBalance: updatedUser.balance
         });
-        
+
         return {
             success: true,
             value: updatedUser
@@ -265,10 +266,7 @@ async function update(email, amount) {
             amount,
             error: error.message
         });
-        return {
-            success: false,
-            message: error.message
-        };
+        throw error;
     }
 }
 
