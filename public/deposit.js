@@ -66,10 +66,10 @@ function DepositForm(props) {
     .then(response => response.json())
     .then(data => {
         console.log('Deposit response:', data);
-        if (data.success && data.value) {
-            console.log('Deposit successful, new balance:', data.value.balance);
+        if (data.success) {
+            console.log('Deposit successful, new balance:', data.balance);
             props.setStatus('Deposit success!');
-            props.setBalance(data.value.balance);
+            props.setBalance(data.balance);
             props.setShow(false);
         } else {
             console.log('Deposit failed:', data.message);

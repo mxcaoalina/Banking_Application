@@ -66,10 +66,10 @@ function WithdrawForm(props) {
     .then(response => response.json())
     .then(data => {
         console.log('Withdraw response:', data);
-        if (data.success && data.value) {
-            console.log('Withdraw successful, new balance:', data.value.balance);
+        if (data.success) {
+            console.log('Withdraw successful, new balance:', data.balance);
             props.setStatus('Withdraw success!');
-            props.setBalance(data.value.balance);
+            props.setBalance(data.balance);
             props.setShow(false);
         } else {
             console.log('Withdraw failed:', data.message);
