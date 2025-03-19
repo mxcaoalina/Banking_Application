@@ -1,5 +1,4 @@
 const { MongoClient } = require('mongodb');
-const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
 // Use environment variables for MongoDB connection
@@ -32,13 +31,6 @@ async function connectDB() {
             client = await MongoClient.connect(url);
             db = client.db(dbName);
             console.log('Connected to MongoDB');
-            
-            // Initialize mongoose connection
-            await mongoose.connect(url, {
-                dbName: dbName,
-                useNewUrlParser: true,
-                useUnifiedTopology: true
-            });
             
             // Create indexes if they don't exist
             const usersCollection = db.collection('users');

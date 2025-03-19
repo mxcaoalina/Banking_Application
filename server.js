@@ -104,7 +104,7 @@ async function initializeServer() {
     try {
         console.log('=== Starting server initialization ===');
         console.log('Attempting to connect to database...');
-        await connectDB();
+        await dal.connectDB();
         console.log('Database connected successfully');
         
         const server = app.listen(PORT, () => {
