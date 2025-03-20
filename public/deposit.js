@@ -1,7 +1,24 @@
 function Deposit() {
     const [amount, setAmount] = React.useState('');
     const [status, setStatus] = React.useState('');
+    const [balance, setBalance] = React.useState(null);
     const { currentUser } = React.useContext(UserContext);
+
+    function fetchBalance() {
+        if (!currentUser) return;
+        fetch(`${window.API_URL}/account/balance/${currentUser.email}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    setBalance(data.balance);
+                }
+            })
+            .catch(error => console.error('Error fetching balance:', error));
+    }
+
+    React.useEffect(() => {
+        fetchBalance();
+    }, [currentUser]);
 
     function handle() {
         if (!currentUser) {
@@ -24,6 +41,7 @@ function Deposit() {
             if (data.success) {
                 setStatus('Deposit successful!');
                 setAmount('');
+                fetchBalance(); // Refresh balance after successful deposit
             } else {
                 setStatus(data.message || 'Failed to deposit');
             }
@@ -40,6 +58,13 @@ function Deposit() {
             {status && <div className="alert alert-info">{status}</div>}
             
             <div className="space-y-4">
+                {balance !== null && (
+                    <div className="text-center mb-4">
+                        <p className="text-sm text-gray-600">Current Balance</p>
+                        <p className="text-2xl font-bold text-primary">${balance.toFixed(2)}</p>
+                    </div>
+                )}
+
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
                     <input
