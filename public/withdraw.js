@@ -4,6 +4,8 @@ function Withdraw() {
     const [balance, setBalance] = React.useState(null);
     const { currentUser } = React.useContext(UserContext);
 
+    const quickAmounts = [10, 20, 50, 100, 200];
+
     function fetchBalance() {
         if (!currentUser) return;
         fetch(`${window.API_URL}/account/balance/${currentUser.email}`)
@@ -26,6 +28,17 @@ function Withdraw() {
             return;
         }
 
+        const withdrawAmount = parseFloat(amount);
+        if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
+            setStatus('Please enter a valid positive amount');
+            return;
+        }
+
+        if (withdrawAmount > balance) {
+            setStatus('Insufficient funds. Please enter a smaller amount.');
+            return;
+        }
+
         fetch(`${window.API_URL}/account/update`, {
             method: 'POST',
             headers: {
@@ -33,7 +46,7 @@ function Withdraw() {
             },
             body: JSON.stringify({ 
                 email: currentUser.email,
-                amount: -parseFloat(amount)
+                amount: -withdrawAmount
             })
         })
         .then(response => response.json())
@@ -41,7 +54,7 @@ function Withdraw() {
             if (data.success) {
                 setStatus('Withdrawal successful!');
                 setAmount('');
-                fetchBalance(); // Refresh balance after successful withdrawal
+                fetchBalance();
             } else {
                 setStatus(data.message || 'Failed to withdraw');
             }
@@ -50,6 +63,10 @@ function Withdraw() {
             console.error('Withdrawal error:', error);
             setStatus('Error: Unable to process withdrawal');
         });
+    }
+
+    function handleQuickAmount(amount) {
+        setAmount(amount.toString());
     }
 
     return (
@@ -66,13 +83,28 @@ function Withdraw() {
                 )}
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Quick Withdraw</label>
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                        {quickAmounts.map((amount) => (
+                            <button
+                                key={amount}
+                                className="btn btn-outline"
+                                onClick={() => handleQuickAmount(amount)}
+                                disabled={amount > balance}
+                            >
+                                ${amount}
+                            </button>
+                        ))}
+                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Custom Amount</label>
                     <input
                         type="number"
                         className="form-control"
                         placeholder="Enter amount"
                         value={amount}
                         onChange={e => setAmount(e.currentTarget.value)}
+                        min="0"
+                        step="0.01"
                     />
                 </div>
 

@@ -26,6 +26,12 @@ function Deposit() {
             return;
         }
 
+        const depositAmount = parseFloat(amount);
+        if (isNaN(depositAmount) || depositAmount <= 0) {
+            setStatus('Please enter a valid positive amount');
+            return;
+        }
+
         fetch(`${window.API_URL}/account/update`, {
             method: 'POST',
             headers: {
@@ -33,7 +39,7 @@ function Deposit() {
             },
             body: JSON.stringify({ 
                 email: currentUser.email,
-                amount: parseFloat(amount)
+                amount: depositAmount
             })
         })
         .then(response => response.json())
@@ -41,7 +47,7 @@ function Deposit() {
             if (data.success) {
                 setStatus('Deposit successful!');
                 setAmount('');
-                fetchBalance(); // Refresh balance after successful deposit
+                fetchBalance();
             } else {
                 setStatus(data.message || 'Failed to deposit');
             }
@@ -73,6 +79,8 @@ function Deposit() {
                         placeholder="Enter amount"
                         value={amount}
                         onChange={e => setAmount(e.currentTarget.value)}
+                        min="0"
+                        step="0.01"
                     />
                 </div>
 
