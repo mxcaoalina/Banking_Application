@@ -1,88 +1,80 @@
-function CreateAccount(){
-  const [show, setShow]     = React.useState(true);
-  const [status, setStatus] = React.useState('');
-  const { setCurrentUser }  = React.useContext(UserContext);
+function CreateAccount() {
+    const [name, setName] = React.useState('');
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
+    const [status, setStatus] = React.useState('');
+    const { currentUser, setCurrentUser } = React.useContext(UserContext);
 
-  const handleShow = (value) => {
-    setShow(value);
-    // Reset currentUser when starting to create a new account
-    if (value) {
-      setCurrentUser(null);
+    function handle() {
+        fetch(`${window.API_URL}/account/create`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, email, password })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                setStatus('Account created successfully!');
+                setCurrentUser(data.user);
+                window.location.hash = '#/deposit/';
+            } else {
+                setStatus(data.message || 'Failed to create account');
+            }
+        })
+        .catch(error => {
+            console.error('Create account error:', error);
+            setStatus('Error: Unable to create account');
+        });
     }
-  }
 
-  return (
-    <Card
-      bgcolor="primary"
-      header="Create Account"
-      status={status}
-      body={show ? 
-        <CreateForm setShow={handleShow} setStatus={setStatus} setCurrentUser={setCurrentUser}/> : 
-        <CreateMsg setShow={handleShow}/>}
-    />
-  )
-}
+    return (
+        <div className="card">
+            <h2 className="text-2xl font-bold mb-4">Create Account</h2>
+            {status && <div className="alert alert-info">{status}</div>}
+            
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Enter name"
+                        value={name}
+                        onChange={e => setName(e.currentTarget.value)}
+                    />
+                </div>
 
-function CreateMsg(props){
-  return(<>
-    <h5>Success</h5>
-    <button type="submit" 
-      className="btn btn-light" 
-      onClick={() => props.setShow(true)}>Add another account</button>
-  </>);
-}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input
+                        type="email"
+                        className="form-control"
+                        placeholder="Enter email"
+                        value={email}
+                        onChange={e => setEmail(e.currentTarget.value)}
+                    />
+                </div>
 
-function CreateForm(props){
-  const [name, setName]         = React.useState('');
-  const [email, setEmail]       = React.useState('');
-  const [password, setPassword] = React.useState('');
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input
+                        type="password"
+                        className="form-control"
+                        placeholder="Enter password"
+                        value={password}
+                        onChange={e => setPassword(e.currentTarget.value)}
+                    />
+                </div>
 
- async function handle(){
-    console.log(name, email, password);
-    const url = `${window.API_URL}/account/create`;
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password })
-    });
-    const data = await response.json();    
-    console.log(data);        
-    
-    if (data.success) {
-        window.location.hash = '#/login/';
-    } else {
-        props.setStatus(data.message || 'Account creation failed');
-    }
-  }    
-
-  return (<>
-
-    Name<br/>
-    <input type="input" 
-      className="form-control" 
-      placeholder="Enter name" 
-      value={name} 
-      onChange={e => setName(e.currentTarget.value)} /><br/>
-
-    Email address<br/>
-    <input type="input" 
-      className="form-control" 
-      placeholder="Enter email" 
-      value={email} 
-      onChange={e => setEmail(e.currentTarget.value)}/><br/>
-
-    Password<br/>
-    <input type="password" 
-      className="form-control" 
-      placeholder="Enter password" 
-      value={password} 
-      onChange={e => setPassword(e.currentTarget.value)}/><br/>
-
-    <button type="submit" 
-      className="btn btn-light" 
-      onClick={handle}>Create Account</button>
-
-  </>);
+                <button
+                    className="btn btn-primary w-full"
+                    onClick={handle}
+                >
+                    Create Account
+                </button>
+            </div>
+        </div>
+    );
 }
