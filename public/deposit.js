@@ -9,12 +9,15 @@ function Deposit() {
             return;
         }
 
-        fetch(`${window.API_URL}/account/deposit`, {
+        fetch(`${window.API_URL}/account/update`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email: currentUser.email, amount: parseFloat(amount) })
+            body: JSON.stringify({ 
+                email: currentUser.email,
+                amount: parseFloat(amount)
+            })
         })
         .then(response => response.json())
         .then(data => {
@@ -22,7 +25,7 @@ function Deposit() {
                 setStatus('Deposit successful!');
                 setAmount('');
             } else {
-                setStatus(data.error || 'Failed to deposit');
+                setStatus(data.message || 'Failed to deposit');
             }
         })
         .catch(error => {

@@ -9,12 +9,15 @@ function Withdraw() {
             return;
         }
 
-        fetch(`${window.API_URL}/account/withdraw`, {
+        fetch(`${window.API_URL}/account/update`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email: currentUser.email, amount: parseFloat(amount) })
+            body: JSON.stringify({ 
+                email: currentUser.email,
+                amount: -parseFloat(amount)  // Negative amount for withdrawal
+            })
         })
         .then(response => response.json())
         .then(data => {
@@ -22,7 +25,7 @@ function Withdraw() {
                 setStatus('Withdrawal successful!');
                 setAmount('');
             } else {
-                setStatus(data.error || 'Failed to withdraw');
+                setStatus(data.message || 'Failed to withdraw');
             }
         })
         .catch(error => {
