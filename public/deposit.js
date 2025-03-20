@@ -1,99 +1,61 @@
 function Deposit() {
-  const [show, setShow] = React.useState(true);
-  const [status, setStatus] = React.useState('');
-  const [balance, setBalance] = React.useState(0);
-  const { isAuthenticated, currentUser } = React.useContext(UserContext);
+    const [amount, setAmount] = React.useState('');
+    const [status, setStatus] = React.useState('');
+    const { currentUser } = React.useContext(UserContext);
 
-  if (!isAuthenticated) {
-    return (
-      <Card
-        bgcolor="danger"
-        header="Access Denied"
-        status="Please login to access this feature"
-        body={
-          <div>
-            <p>You must be logged in to make deposits.</p>
-            <a href="#/login" className="btn btn-light">Go to Login</a>
-          </div>
+    function handle() {
+        if (!currentUser) {
+            setStatus('Please log in to make a deposit');
+            return;
         }
-      />
-    );
-  }
 
-  return (
-    <Card
-      bgcolor="success"
-      header="Deposit"
-      status={status}
-      body={show ? 
-        <DepositForm setShow={setShow} setStatus={setStatus} setBalance={setBalance} email={currentUser.email}/> : 
-        <DepositMsg setShow={setShow} setStatus={setStatus} balance={balance}/>
-      }
-    />
-  );
-}
-
-function DepositMsg(props) {
-  return (
-    <>
-      <h5>Current Balance: ${props.balance}</h5>
-      <button type="submit" 
-        className="btn btn-light" 
-        onClick={() => {
-          props.setShow(true);
-          props.setStatus('');
-        }}>
-          Deposit again
-      </button>
-    </>
-  );
-}
-
-function DepositForm(props) {
-  const [amount, setAmount] = React.useState('');
-
-  function handle() {
-    fetch(`/account/update`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-            email: props.email,
-            amount: parseFloat(amount)
+        fetch(`${window.API_URL}/account/deposit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: currentUser.email, amount: parseFloat(amount) })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Deposit response:', data);
-        if (data.success) {
-            console.log('Deposit successful, new balance:', data.balance);
-            props.setStatus('Deposit success!');
-            props.setBalance(data.balance);
-            props.setShow(false);
-        } else {
-            console.log('Deposit failed:', data.message);
-            props.setStatus(data.message || 'Deposit failed');
-        }
-    })
-    .catch(error => {
-        console.error('Fetch error:', error);
-        props.setStatus('Error: Unable to complete the deposit');
-    });
-  }
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                setStatus('Deposit successful!');
+                setAmount('');
+            } else {
+                setStatus(data.error || 'Failed to deposit');
+            }
+        })
+        .catch(error => {
+            console.error('Deposit error:', error);
+            setStatus('Error: Unable to process deposit');
+        });
+    }
 
-  return (
-    <>
-      Amount<br/>
-      <input type="number"
-        className="form-control"
-        placeholder="Enter amount"
-        value={amount}
-        onChange={e => setAmount(e.currentTarget.value)}/><br/>
+    return (
+        <div className="card">
+            <h2 className="text-2xl font-bold mb-4">Make a Deposit</h2>
+            {status && <div className="alert alert-info">{status}</div>}
+            
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                    <input
+                        type="number"
+                        className="form-control"
+                        placeholder="Enter amount"
+                        value={amount}
+                        onChange={e => setAmount(e.currentTarget.value)}
+                    />
+                </div>
 
-      <button type="submit"
-        className="btn btn-light"
-        onClick={handle}>Deposit</button>
-    </>
-  );
+                <button
+                    className="btn btn-primary w-full"
+                    onClick={handle}
+                    disabled={!currentUser}
+                >
+                    {currentUser ? 'Deposit' : 'Please Log In'}
+                </button>
+            </div>
+        </div>
+    );
 }
