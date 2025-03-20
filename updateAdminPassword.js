@@ -1,7 +1,7 @@
+require('dotenv').config();
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcrypt');
-
-const uri = process.env.MONGODB_URI || 'mongodb+srv://LA_PC:admin123@cluster.ucsoruf.mongodb.net/badbank?retryWrites=true&w=majority';
+const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
 
 async function updateAdminPassword() {

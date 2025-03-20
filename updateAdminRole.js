@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { MongoClient } = require('mongodb');
 
 const uri = process.env.MONGODB_URI || 'mongodb+srv://LA_PC:admin123@cluster.ucsoruf.mongodb.net/badbank?retryWrites=true&w=majority';
