@@ -16,7 +16,7 @@ function UserProvider({ children }) {
             if (userEmail) {
                 try {
                     console.log('Checking auth for email:', userEmail);
-                    const response = await fetch('/account/findOne', {
+                    const response = await fetch(`${window.API_URL}/account/login`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -31,12 +31,15 @@ function UserProvider({ children }) {
                     const data = await response.json();
                     console.log('Auth check response:', data);
                     
-                    if (data && data._id) {
-                        // 移除密码字段
-                        const { password, ...userWithoutPassword } = data;
-                        setCurrentUser(userWithoutPassword);
+                    if (data.success && data.user) {
+                        // Ensure role is preserved
+                        const userData = {
+                            ...data.user,
+                            role: data.user.role || 'user'
+                        };
+                        setCurrentUser(userData);
                         setIsAuthenticated(true);
-                        console.log('User authenticated:', userWithoutPassword);
+                        console.log('User authenticated:', userData);
                     } else {
                         console.log('Auth check failed: Invalid user data');
                         localStorage.removeItem('userEmail');
@@ -56,9 +59,12 @@ function UserProvider({ children }) {
 
     const login = (user) => {
         console.log('Logging in user:', user);
-        // 移除密码字段
-        const { password, ...userWithoutPassword } = user;
-        setCurrentUser(userWithoutPassword);
+        // Ensure role is preserved
+        const userData = {
+            ...user,
+            role: user.role || 'user'
+        };
+        setCurrentUser(userData);
         setIsAuthenticated(true);
         localStorage.setItem('userEmail', user.email);
     };

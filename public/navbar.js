@@ -21,24 +21,35 @@ function NavBar() {
                     <div className="flex items-center space-x-4">
                         {currentUser ? (
                             <>
-                                <a
-                                    href="#/balance/"
-                                    className="text-gray-700 hover:text-primary"
-                                >
-                                    Balance
-                                </a>
-                                <a
-                                    href="#/deposit/"
-                                    className="text-gray-700 hover:text-primary"
-                                >
-                                    Deposit
-                                </a>
-                                <a
-                                    href="#/withdraw/"
-                                    className="text-gray-700 hover:text-primary"
-                                >
-                                    Withdraw
-                                </a>
+                                {currentUser.role === 'admin' ? (
+                                    <a
+                                        href="#/alldata/"
+                                        className="text-gray-700 hover:text-primary"
+                                    >
+                                        All Data
+                                    </a>
+                                ) : (
+                                    <>
+                                        <a
+                                            href="#/balance/"
+                                            className="text-gray-700 hover:text-primary"
+                                        >
+                                            Balance
+                                        </a>
+                                        <a
+                                            href="#/deposit/"
+                                            className="text-gray-700 hover:text-primary"
+                                        >
+                                            Deposit
+                                        </a>
+                                        <a
+                                            href="#/withdraw/"
+                                            className="text-gray-700 hover:text-primary"
+                                        >
+                                            Withdraw
+                                        </a>
+                                    </>
+                                )}
                                 <span className="text-gray-700">
                                     Welcome, {currentUser.name}
                                 </span>
