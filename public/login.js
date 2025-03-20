@@ -28,32 +28,41 @@ function Login() {
     }
 
     return (
-        <Card
-            bgcolor="secondary"
-            header="Login"
-            status={status}
-            body={
-                <>
-                    Email<br/>
-                    <input type="input"
+        <div className="card">
+            <h2 className="text-2xl font-bold mb-4">Login</h2>
+            {status && <div className="alert alert-info">{status}</div>}
+            
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input
+                        type="email"
                         className="form-control"
                         placeholder="Enter email"
                         value={email}
-                        onChange={e => setEmail(e.currentTarget.value)}/><br/>
+                        onChange={e => setEmail(e.currentTarget.value)}
+                    />
+                </div>
 
-                    Password<br/>
-                    <input type="password"
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input
+                        type="password"
                         className="form-control"
                         placeholder="Enter password"
                         value={password}
-                        onChange={e => setPassword(e.currentTarget.value)}/><br/>
+                        onChange={e => setPassword(e.currentTarget.value)}
+                    />
+                </div>
 
-                    <button type="submit"
-                        className="btn btn-light"
-                        onClick={handle}>Login</button>
-                </>
-            }
-        />
+                <button
+                    className="btn btn-light w-full"
+                    onClick={handle}
+                >
+                    Login
+                </button>
+            </div>
+        </div>
     );
 }
 
